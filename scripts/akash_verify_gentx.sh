@@ -9,6 +9,11 @@ LEN_GENTX=$(echo ${#GENTX_FILE})
 GENTX_DEADLINE=$(date -d '2020-05-06 16:00:00' '+%d/%m/%Y %H:%M:%S');
 now=$(date +"%d/%m/%Y %H:%M:%S")
 
+latest_dir="$(dirname "$0")/../latest"
+version="$(cat "$latest_dir/version.txt")"
+chain_id="$(cat "$latest_dir/chain_id.txt")"
+
+
 # if [ $GENTX_DEADLINE < $now ]; then
 #     echo 'Gentx submission is closed'
 # el
@@ -18,17 +23,17 @@ else
     set -e
 
     echo "...........Init Akash.............."
-    curl -L https://github.com/ovrclk/akash/releases/download/v0.6.1/akash_0.6.1_linux_amd64.zip -o akash_linux.zip && unzip akash_linux.zip
-    rm akash_linux.zip
-    cd akash_0.6.1_linux_amd64
+    curl -sSfL https://raw.githubusercontent.com/ovrclk/akash/master/godownloader.sh | sh -s -- "v$version"
+    cd bin
 
     echo "12345678" | ./akashctl keys add $RANDOM_KEY --keyring-backend test --home $AKASHCTL_HOME
 
-    ./akashd init --chain-id centauri testvalxyz --home $AKASH_HOME -o
+    ./akashd init --chain-id "$chain_id" testvalxyz --home $AKASH_HOME -o
 
     echo "..........Fetching genesis......."
     rm -rf $AKASH_HOME/config/genesis.json
-    curl -s https://raw.githubusercontent.com/ovrclk/net/master/centauri/genesis.json > $AKASH_HOME/config/genesis.json
+
+    cp "$latest_dir/genesis.json" "$AKASH_HOME/config/genesis.json"
 
     GENACC=$(cat ../centauri/gentxs/$GENTX_FILE | sed -n 's|.*"delegator_address":"\([^"]*\)".*|\1|p')
 
@@ -55,7 +60,7 @@ else
 
     echo "...checking network status.."
 
-    ./akashctl status --chain-id centauri
+    ./akashctl status --chain-id "$chain_id"
 
     echo "...Cleaning the stuff..."
     killall akashd >/dev/null 2>&1
