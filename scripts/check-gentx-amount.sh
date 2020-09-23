@@ -1,38 +1,42 @@
 #!/bin/bash
+CHAIN_ID=akashnet-1
 
 set -eo pipefail
 
-path="$1"
+for FILE in ./$CHAIN_ID/gentxs/*; 
+do 
+  path="$FILE"
 
-declare -i maxbond=1000000000
+  echo "Validating $FILE"
 
-extraquery='[.value.msg[]| select(.type != "cosmos-sdk/MsgCreateValidator")]|length'
+  declare -i maxbond=1000000000
 
-gentxquery='.value.msg[]| select(.type == "cosmos-sdk/MsgCreateValidator")|.value.value'
+  extraquery='[.value.msg[]| select(.type != "cosmos-sdk/MsgCreateValidator")]|length'
 
-denomquery="[$gentxquery | select(.denom != \"uakt\")] | length"
+  gentxquery='.value.msg[]| select(.type == "cosmos-sdk/MsgCreateValidator")|.value.value'
 
-amountquery="$gentxquery | .amount"
+  denomquery="[$gentxquery | select(.denom != \"uakt\")] | length"
 
-# only allow MsgCreateValidator transactions.
-if [ "$(jq "$extraquery" "$path")" != "0" ]; then
-  echo "spurious transactions"
-  exit 1
-fi
+  amountquery="$gentxquery | .amount"
 
-# only allow "uakt" tokens to be bonded
-if [ "$(jq "$denomquery" "$path")" != "0" ]; then
-  echo "invalid denomination"
-  exit 1
-fi
-
-# limit the amount that can be bonded
-for amount in "$(jq -rM "$amountquery" "$path")"; do
-  declare -i amt="$amount"
-  if [ $amt -gt $maxbond ]; then
-    echo "bonded too much: $amt > $maxbond"
-    exit 1
+  # only allow MsgCreateValidator transactions.
+  if [ "$(jq "$extraquery" "$path")" != "0" ]; then
+    echo "spurious transactions, FILE_PATH: $FILE"
+    continue
   fi
-done
 
-exit 0
+  # only allow "uakt" tokens to be bonded
+  if [ "$(jq "$denomquery" "$path")" != "0" ]; then
+    echo "invalid denomination , FILE_PATH: $FILE"
+    continue
+  fi
+
+  # limit the amount that can be bonded
+  for amount in "$(jq -rM "$amountquery" "$path")"; do
+    declare -i amt="$amount"
+    if [ $amt -gt $maxbond ]; then
+      echo "bonded too much: $amt > $maxbond , FILE_PATH: $FILE"
+      continue
+    fi
+  done
+done

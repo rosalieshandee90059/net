@@ -29,5 +29,8 @@ seed-node:
 	
 genesis:
 	bash -x ./scripts/generate-genesis.sh
+
+check-amount:
+	bash -x ./scripts/check-gentx-amount.sh
 	
 .PHONY: verify-gentx
