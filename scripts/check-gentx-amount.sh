@@ -36,7 +36,7 @@ do
     declare -i amt="$amount"
     if [ $amt -gt $maxbond ]; then
       echo "bonded too much: $amt > $maxbond , FILE_PATH: $FILE"
-      continue
+      break
     fi
   done
 done
